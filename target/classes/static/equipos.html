@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Smartmaint – Equipos</title>
+
+  <!-- Tipografías -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Playfair+Display:ital,wght@1,700&display=swap" rel="stylesheet">
+  <link href="https://unpkg.com/aos@2.3.4/dist/aos.css" rel="stylesheet">
+  <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background-color: #ffffff;
+    }
+
+    header.topbar {
+      background-color: #ffffff;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 24px 5%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .topbar .logo img {
+      height: 80px;
+    }
+
+    .topbar nav ul {
+      list-style: none;
+      display: flex;
+      gap: 32px;
+      margin: 0;
+      padding: 0;
+    }
+
+    .topbar nav a {
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 1rem;
+      color: #1e293b;
+      transition: color 0.3s ease;
+    }
+
+    .topbar nav a:hover {
+      color: #2563eb;
+    }
+
+    .login-section {
+      background-color: #ffffff;
+      padding: 100px 10% 120px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .login-container {
+      max-width: 600px;
+      width: 100%;
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .login-container h2 {
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
+      font-size: 2.4em;
+      color: #f3ba69;
+      margin-bottom: 32px;
+    }
+
+    .login-form {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .login-form label {
+      font-weight: 600;
+      text-align: left;
+      color: #1e293b;
+    }
+
+    .login-form input {
+      padding: 12px 16px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 1rem;
+      transition: border-color 0.3s ease;
+    }
+
+    .login-form input:focus {
+      outline: none;
+      border-color: #2563eb;
+    }
+
+    .login-form button {
+      margin-top: 10px;
+      background-color: #1e3a8a;
+      color: white;
+      padding: 14px;
+      font-weight: 600;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    .login-form button:hover {
+      background-color: #2563eb;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 40px;
+    }
+
+    th, td {
+      padding: 12px;
+      border: 1px solid #cbd5e1;
+      text-align: left;
+    }
+
+    th {
+      background-color: #f3ba69;
+      color: #1e293b;
+      font-weight: 600;
+    }
+
+    @media (max-width: 768px) {
+      .topbar {
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .topbar .logo img {
+        height: 64px;
+      }
+
+      .login-container h2 {
+        font-size: 2em;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Encabezado -->
+  <header class="topbar">
+    <div class="logo">
+      <img src="logosmartmaint.png" alt="Smartmaint Logo">
+    </div>
+    <nav>
+      <ul>
+        <li><a href="perfil.html">Perfil</a></li>
+        <li><a href="equipos.html">Equipos</a></li>
+        <li><a href="#">Reportes</a></li>
+        <li><a href="#">Cerrar sesión</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <!-- Registro de Equipos -->
+  <section class="login-section">
+    <div class="login-container" data-aos="fade-up">
+      <h2>Registrar Equipo</h2>
+      <form class="login-form" id="form-equipo">
+        <label for="nombre">Nombre del equipo</label>
+        <input type="text" id="nombre" required>
+
+        <label for="tipo">Tipo</label>
+        <input type="text" id="tipo" required>
+
+        <label for="ubicacion">Ubicación</label>
+        <input type="text" id="ubicacion" required>
+
+        <label for="estado">Estado</label>
+        <input type="text" id="estado" required>
+
+        <button type="submit">Registrar</button>
+      </form>
+    </div>
+
+    <!-- Tabla de Equipos -->
+    <table id="tabla-equipos">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Tipo</th>
+          <th>Ubicación</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <!-- AOS Init -->
+  <script>
+    AOS.init({ duration: 800, once: true });
+  </script>
+
+  <!-- Script de conexión al backend -->
+  <script>
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      alert("⚠️ No estás autenticado");
+      window.location.href = "Iniciar.html";
+    }
+
+    const form = document.getElementById("form-equipo");
+    const tabla = document.querySelector("#tabla-equipos tbody");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const data = {
+        nombre: document.getElementById("nombre").value.trim(),
+        tipo: document.getElementById("tipo").value.trim(),
+        ubicacion: document.getElementById("ubicacion").value.trim(),
+        estado: document.getElementById("estado").value.trim(),
+      };
+
+      if (!data.nombre || !data.tipo || !data.ubicacion || !data.estado) {
+        alert("⚠️ Todos los campos son obligatorios");
+        return;
+      }
+
+      try {
+        const res = await fetch("http://localhost:8080/api/equipos", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token
+          },
+          body: JSON.stringify(data),
+        });
+
+        const result = await res.json();
+        if (res.ok) {
+          alert("✅ Equipo registrado: " + result.nombre);
+          form.reset();
+          cargarEquipos();
+        } else {
+          alert("⚠️ Error: " + result);
+        }
+      } catch (err) {
+        alert("❌ Error de conexión");
+        console.error(err);
+      }
+    });
+
+    async function cargarEquipos() {
+      try {
+        const res = await fetch("http://localhost:8080/api/equipos", {
+          headers: { "Authorization": "Bearer " + token }
+        });
+        const equipos = await res.json();
+
+        tabla.innerHTML = "";
+        if (equipos.length === 0) {
+          tabla.innerHTML = `<tr><td colspan="4">No hay equipos registrados</td></tr>`;
+        } else {
+          equipos.forEach(eq => {
+            tabla.innerHTML += `
+              <tr>
+                <td>${eq.nombre}</td>
+                <td>${eq.tipo}</td>
+                <td>${eq.ubicacion}</td>
+                <td>${eq.estado}</td>
+              </tr>
+            `;
+          });
+        }
+      } catch (err) {
+        console.error("Error al cargar equipos:", err);
+      }
+    }
+
+    cargarEquipos();
+  </script>
+
+</body>
+</html>

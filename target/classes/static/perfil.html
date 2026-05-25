@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Smartmaint – Perfil</title>
+</head>
+<body>
+  <h2>Bienvenido a tu perfil</h2>
+  <div id="datos-usuario"></div>
+
+  <script>
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      alert("⚠️ No estás autenticado");
+      window.location.href = "Iniciar.html";
+    } else {
+      fetch("http://localhost:8080/api/perfil", {
+        method: "GET",
+        headers: {
+          "Authorization": "Bearer " + token
+        }
+      })
+      .then(async res => {
+        if (!res.ok) {
+          const errorText = await res.text();
+          throw new Error(errorText || "Error desconocido");
+        }
+        return res.json();
+      })
+      .then(data => {
+        document.getElementById("datos-usuario").innerHTML = `
+          <p><strong>Nombre:</strong> ${data.nombre}</p>
+          <p><strong>Correo:</strong> ${data.correo}</p>
+          <p><strong>Rol:</strong> ${data.rol.nombre}</p>
+        `;
+      })
+      .catch(err => {
+        alert("❌ Error al cargar perfil: " + err.message);
+        console.error("Error al cargar perfil:", err);
+      });
+    }
+  </script>
+</body>
+</html>
