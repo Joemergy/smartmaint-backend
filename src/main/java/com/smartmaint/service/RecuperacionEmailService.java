@@ -3,6 +3,9 @@ package com.smartmaint.service;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -13,9 +16,13 @@ import org.springframework.stereotype.Service;
 @Service
 @ConditionalOnProperty(
         prefix = "spring.mail",
-        name = "host"
+        name = "host",
+        matchIfMissing = false
 )
 public class RecuperacionEmailService {
+
+    private static final Logger log =
+            LoggerFactory.getLogger(RecuperacionEmailService.class);
 
     private final ObjectProvider<JavaMailSender> mailSenderProvider;
 
@@ -27,13 +34,13 @@ public class RecuperacionEmailService {
 
             ObjectProvider<JavaMailSender> mailSenderProvider,
 
-            @Value("${app.purchase.mail.from:no-reply@smartmaint.com}")
+            @Value("${app.purchase.mail.from:smartmaint.co@outlook.com}")
             String from,
 
             @Value("${spring.mail.username:}")
             String smtpUsername,
 
-            @Value("${app.demo.login.url:http://localhost:3000/login}")
+            @Value("${app.demo.login.url:https://smartmaint-frontend-last.vercel.app/login}")
             String loginUrl
     ) {
 
@@ -52,6 +59,7 @@ public class RecuperacionEmailService {
         JavaMailSender mailSender = mailSenderProvider.getIfAvailable();
 
         if (mailSender == null) {
+
             throw new IllegalStateException(
                     "El envío de correo no está configurado."
             );
@@ -72,6 +80,7 @@ public class RecuperacionEmailService {
                 <html lang="es">
                 <body style="font-family:Segoe UI,Arial,sans-serif;background:#f3f7ff;padding:16px;">
                   <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #d7e4f8;">
+
                     <div style="background:linear-gradient(90deg,#0b3f83,#0a4a95 55%,#0f5db8);padding:16px 24px;color:#ffffff;font-weight:800;font-size:22px;letter-spacing:0.04em;">
                       SMARTMAINT
                     </div>
@@ -136,7 +145,7 @@ public class RecuperacionEmailService {
                     )
             );
 
-            helper.setReplyTo("no-reply@smartmaint.com");
+            helper.setReplyTo(resolverRemitente());
 
             helper.setTo(correoDestino);
 
@@ -144,13 +153,30 @@ public class RecuperacionEmailService {
 
             helper.setText(textoPlano, html);
 
+            log.info(
+                    "Enviando correo de recuperación a {} desde {}",
+                    correoDestino,
+                    resolverRemitente()
+            );
+
             mailSender.send(msg);
+
+            log.info(
+                    "Correo de recuperación enviado correctamente a {}",
+                    correoDestino
+            );
 
         } catch (Exception e) {
 
+            log.error(
+                    "Error enviando recuperación a {}: {}",
+                    correoDestino,
+                    e.getMessage(),
+                    e
+            );
+
             throw new IllegalStateException(
-                    "No se pudo enviar el correo de recuperación: "
-                            + e.getMessage(),
+                    "No se pudo enviar el correo de recuperación",
                     e
             );
         }

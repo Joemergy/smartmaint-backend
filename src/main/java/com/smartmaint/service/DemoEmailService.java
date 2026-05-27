@@ -3,10 +3,13 @@ package com.smartmaint.service;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
@@ -16,23 +19,43 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 @Service
+@ConditionalOnProperty(
+        prefix = "spring.mail",
+        name = "host",
+        matchIfMissing = false
+)
 public class DemoEmailService {
 
-    private static final Logger log = LoggerFactory.getLogger(DemoEmailService.class);
+    private static final Logger log =
+            LoggerFactory.getLogger(DemoEmailService.class);
 
     private final ObjectProvider<JavaMailSender> mailSenderProvider;
+
     private final String from;
+    private final String smtpUsername;
     private final String loginUrl;
     private final String logoUrl;
 
     public DemoEmailService(
+
             ObjectProvider<JavaMailSender> mailSenderProvider,
-            @Value("${app.demo.mail.from:no-reply@smartmaint.com}") String from,
-            @Value("${app.demo.login.url:http://localhost:3000/login}") String loginUrl,
-            @Value("${app.demo.mail.logo.url:}") String logoUrl
+
+            @Value("${app.demo.mail.from:smartmaint.co@outlook.com}")
+            String from,
+
+            @Value("${spring.mail.username:}")
+            String smtpUsername,
+
+            @Value("${app.demo.login.url:https://smartmaint-frontend-last.vercel.app/login}")
+            String loginUrl,
+
+            @Value("${app.demo.mail.logo.url:}")
+            String logoUrl
     ) {
+
         this.mailSenderProvider = mailSenderProvider;
         this.from = from;
+        this.smtpUsername = smtpUsername;
         this.loginUrl = loginUrl;
         this.logoUrl = logoUrl;
     }
@@ -52,18 +75,25 @@ public class DemoEmailService {
 
         JavaMailSender mailSender = mailSenderProvider.getIfAvailable();
 
-        // Si NO hay SMTP configurado, simplemente no envía correo
-        // pero NO rompe la aplicación.
         if (mailSender == null) {
-            log.warn("SMTP no configurado. Se omitió envío de correo demo a {}", destinatario);
+
+            log.warn(
+                    "SMTP no configurado. No se envió correo demo a {}",
+                    destinatario
+            );
+
             return;
         }
 
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-        String vigenciaFormateada = expiraEn.format(formatter);
+        DateTimeFormatter formatter =
+                DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+
+        String vigenciaFormateada =
+                expiraEn.format(formatter);
 
         String textoPlano =
                 "Hola " + nombre + ",\n\n" +
+
                 "Tu solicitud demo para " + empresa + " fue aprobada.\n\n" +
 
                 "SUPERADMIN\n" +
@@ -98,39 +128,79 @@ public class DemoEmailService {
 
         try {
 
-            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessage mimeMessage =
+                    mailSender.createMimeMessage();
 
             MimeMessageHelper helper =
-                    new MimeMessageHelper(mimeMessage, true, "UTF-8");
+                    new MimeMessageHelper(
+                            mimeMessage,
+                            true,
+                            "UTF-8"
+                    );
 
             helper.setFrom(
                     new InternetAddress(
-                            from,
+                            resolverRemitente(),
                             "SmartMaint Notificaciones",
                             "UTF-8"
                     )
             );
 
-            helper.setReplyTo("no-reply@smartmaint.com");
+            helper.setReplyTo(resolverRemitente());
 
             helper.setTo(destinatario);
 
-            helper.setSubject("Tus credenciales demo - SmartMaint");
+            helper.setSubject(
+                    "Tus credenciales demo - SmartMaint"
+            );
 
             helper.setText(textoPlano, html);
 
+            log.info(
+                    "Enviando correo demo a {} desde {}",
+                    destinatario,
+                    resolverRemitente()
+            );
+
             mailSender.send(mimeMessage);
 
-            log.info("Correo demo enviado correctamente a {}", destinatario);
+            log.info(
+                    "Correo demo enviado correctamente a {}",
+                    destinatario
+            );
 
-        } catch (MessagingException | UnsupportedEncodingException e) {
+        } catch (
+                MessagingException
+                | UnsupportedEncodingException e
+        ) {
 
-            log.error("No se pudo construir correo demo", e);
+            log.error(
+                    "No se pudo construir correo demo",
+                    e
+            );
 
         } catch (Exception e) {
 
-            log.error("Error enviando correo demo", e);
+            log.error(
+                    "Error enviando correo demo",
+                    e
+            );
         }
+    }
+
+    private String resolverRemitente() {
+
+        if (from != null && !from.isBlank()) {
+            return from;
+        }
+
+        if (smtpUsername != null && !smtpUsername.isBlank()) {
+            return smtpUsername;
+        }
+
+        throw new IllegalStateException(
+                "No hay remitente configurado para correo demo."
+        );
     }
 
     private String construirPlantillaHtml(
@@ -148,11 +218,14 @@ public class DemoEmailService {
         String logoHtml = "";
 
         if (logoUrl != null && !logoUrl.isBlank()) {
+
             logoHtml = """
                     <img src="%s"
                          alt="SMARTMAINT"
                          style="max-height:40px;margin-bottom:20px;">
-                    """.formatted(escaparHtml(logoUrl));
+                    """.formatted(
+                    escaparHtml(logoUrl)
+            );
         }
 
         return """
@@ -182,7 +255,9 @@ public class DemoEmailService {
 
                             %s
 
-                            <p>Hola <strong>%s</strong>,</p>
+                            <p>
+                                Hola <strong>%s</strong>,
+                            </p>
 
                             <p>
                                 Tu solicitud demo para
@@ -232,7 +307,9 @@ public class DemoEmailService {
                 </body>
                 </html>
                 """.formatted(
+
                 logoHtml,
+
                 escaparHtml(nombre),
                 escaparHtml(empresa),
 
@@ -252,7 +329,9 @@ public class DemoEmailService {
 
     private String escaparHtml(String valor) {
 
-        if (valor == null) return "";
+        if (valor == null) {
+            return "";
+        }
 
         return valor
                 .replace("&", "&amp;")
