@@ -61,7 +61,7 @@ public class Usuario {
     @Column(name = "direccion", length = 255)
     private String direccion;
 
-    @Column(name = "foto_perfil")
+    @Column(name = "foto_perfil", columnDefinition = "TEXT")
     private String fotoPerfil;
 
     @Column(name = "debe_cambiar_contrasena", nullable = false)

@@ -65,12 +65,16 @@ public class UsuarioService {
             ? rolSolicitado.getNombre().trim().toUpperCase()
             : "";
 
-        if ("ADMIN".equals(rolSolicitante) && !"USUARIO".equals(nombreRolSolicitado)) {
+        if ("ADMIN".equals(rolSolicitante) && !nombreRolSolicitado.contains("USUARIO")) {
             throw new RuntimeException("Un ADMIN solo puede crear usuarios estándar");
         }
         if ("SUPERADMIN".equals(rolSolicitante)
-            && !("USUARIO".equals(nombreRolSolicitado) || "ADMIN".equals(nombreRolSolicitado))) {
+            && !(nombreRolSolicitado.contains("USUARIO") || nombreRolSolicitado.contains("ADMIN"))) {
             throw new RuntimeException("Un SUPERADMIN solo puede crear ADMIN o USUARIO");
+        }
+        // Prevenir la creación de usuarios con rol SUPERADMIN
+        if (nombreRolSolicitado.contains("SUPERADMIN")) {
+            throw new RuntimeException("No se pueden crear usuarios con rol SUPERADMIN");
         }
 
         Usuario usuario = new Usuario();
@@ -154,12 +158,17 @@ public class UsuarioService {
         if (admin.getEmpresa() == null)
             throw new RuntimeException("Admin sin empresa asignada");
 
-        // Solo listar colaboradores (rol USUARIO) en orden de creación.
-        return usuarioRepository.findByEmpresaIdAndRolNombreIgnoreCaseOrderByCreatedAtAsc(
-                admin.getEmpresa().getId(),
-                "USUARIO"
-            )
-                .stream().map(UsuarioDTO::fromEntity).collect(Collectors.toList());
+        // Listar todos los usuarios de la empresa en orden de creación.
+        return usuarioRepository.findByEmpresaId(admin.getEmpresa().getId())
+                .stream()
+                .sorted((u1, u2) -> {
+                    if (u1.getCreatedAt() == null && u2.getCreatedAt() == null) return 0;
+                    if (u1.getCreatedAt() == null) return 1;
+                    if (u2.getCreatedAt() == null) return -1;
+                    return u1.getCreatedAt().compareTo(u2.getCreatedAt());
+                })
+                .map(UsuarioDTO::fromEntity)
+                .collect(Collectors.toList());
     }
 
     @Transactional

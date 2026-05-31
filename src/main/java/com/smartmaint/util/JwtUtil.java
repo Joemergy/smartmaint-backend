@@ -88,6 +88,28 @@ public class JwtUtil {
         return extraerCorreo(token);
     }
 
+    // Extraer rol desde token con prefijo Bearer
+    public String extraerRolDesdeToken(String token) {
+        if (token == null || token.isBlank()) return null;
+        if (token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        }
+        try {
+            Claims claims = getClaims(token);
+            List<String> roles = claims.get("roles", List.class);
+            if (roles != null && !roles.isEmpty()) {
+                String role = roles.get(0);
+                if (role != null && role.startsWith("ROLE_")) {
+                    return role.substring(5);
+                }
+                return role;
+            }
+        } catch (Exception e) {
+            logger.debug("Error al extraer rol del token: {}", e.getMessage());
+        }
+        return null;
+    }
+
     // Validar token (vigencia y firma)
     public boolean validarToken(String token) {
         try {

@@ -70,6 +70,16 @@ public class TareaService {
     }
 
     /**
+     * Listar tareas por empresa (para demo accounts)
+     */
+    @Transactional(readOnly = true)
+    public List<TareaDTO> listarPorEmpresa(Long empresaId) {
+        List<Tarea> tareas = tareaRepository.findByEmpresaId(empresaId);
+        logger.info("📦 Tareas encontradas para empresa {}: {}", empresaId, tareas.size());
+        return tareas.stream().map(TareaDTO::fromEntity).collect(Collectors.toList());
+    }
+
+    /**
      * Obtener tarea por ID
      */
     @Transactional(readOnly = true)
